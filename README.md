@@ -118,7 +118,7 @@ If you want to learn or give feedback: aaravbanshiwala@gmail.com
 
 ---
 
-Note (2026-10-31): The routing pilot now lives in a separate folder, `routing-pilot/` (planned as its own repository).
+Note: Farex is now developed as a routing test tool at [github.com/farex-ai](https://github.com/farex-ai). This repository is the historical record.
 Known limitations of the historical results above: the clinical prose scorer passes wrong answers, so the "100% prose"
 figures are not evidence of correctness. No run in this repo made a routing decision (all used matched routing). Token
 and cost figures are `chars/4` estimates with an assumed price. Three generic prompt files (`agents/math_agent.txt`,
