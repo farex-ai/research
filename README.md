@@ -115,3 +115,11 @@ MIT License - Code assist and draft structure used AI tools; experiment design, 
 
 Contact ->
 If you want to learn or give feedback: aaravbanshiwala@gmail.com
+
+---
+
+Note (2026-10-31): The routing pilot now lives in a separate folder, `routing-pilot/` (planned as its own repository).
+Known limitations of the historical results above: the clinical prose scorer passes wrong answers, so the "100% prose"
+figures are not evidence of correctness. No run in this repo made a routing decision (all used matched routing). Token
+and cost figures are `chars/4` estimates with an assumed price. Three generic prompt files (`agents/math_agent.txt`,
+`extraction_agent.txt`, `evidence_qa_agent.txt`) contain each other's prompts. The text above is unchanged.
