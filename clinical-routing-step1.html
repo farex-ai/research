@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What I built — the clinical routing axis (Step 1)</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1b2333; --muted:#5a6374; --line:#dde3ee;
+    --triage:#c23a3a; --inter:#6d3fd1; --lit:#0d7a63; --math:#a85f00;
+    --ok:#0d7a63; --warn:#a85f00; --bad:#c23a3a;
+    --shadow:0 1px 2px rgba(20,28,50,.06),0 8px 24px rgba(20,28,50,.07);
+  }
+  *{box-sizing:border-box}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1020px;margin:0 auto;padding:32px 20px 64px}
+  header.hero{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:28px 28px 22px;box-shadow:var(--shadow)}
+  .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  h1{margin:.35em 0 .3em;font-size:clamp(24px,4vw,34px);line-height:1.15;letter-spacing:-.01em}
+  .lede{color:var(--muted);max-width:70ch;margin:0 0 14px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0;list-style:none}
+  .chips li{font-size:12.5px;background:#eef1f8;border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--ink)}
+  .chips li b{font-weight:650}
+  h2{font-size:20px;margin:44px 0 6px;letter-spacing:-.01em}
+  h2 + p.sub{margin:0 0 16px;color:var(--muted)}
+  .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .agent{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent,#888);
+    border-radius:12px;padding:16px;box-shadow:var(--shadow);transition:box-shadow .15s, transform .15s;overflow:hidden}
+  .agent:hover{transform:translateY(-2px)}
+  .agent h3{margin:0 0 6px;font-size:15.5px;display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+  .agent p{margin:0 0 10px;font-size:13.5px;color:var(--muted)}
+  .agent .hand{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;
+    background:#f2f4fa;border:1px solid var(--line);border-radius:6px;padding:3px 7px;display:block;
+    max-width:100%;color:var(--ink);overflow-wrap:anywhere;word-break:break-all;margin-top:2px}
+  .agent .q{margin:10px 0 0;font-size:13px;font-style:italic;color:var(--ink);border-top:1px dashed var(--line);padding-top:9px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+  .diagram svg{width:100%;height:auto;display:block}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;
+    padding:8px 10px;border-bottom:2px solid var(--line)}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr.group td{background:#f7f8fc;font-weight:650;font-size:12.5px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;color:#fff;background:var(--accent,#666)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+  .dim{color:var(--muted)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+  .filters button{font:inherit;font-size:13px;padding:6px 13px;border-radius:999px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer}
+  .filters button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  tr.hide{display:none}
+  .verif{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .verif .card{padding:16px 18px}
+  .verif h3{margin:0 0 8px;font-size:14.5px}
+  .verif ul{margin:0;padding-left:18px;font-size:13.5px}
+  .verif li{margin:5px 0}
+  .pass{color:var(--ok);font-weight:700}
+  .calls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .callout{border-radius:12px;padding:15px 17px;font-size:13.5px;border:1px solid}
+  .callout b{display:block;margin-bottom:4px}
+  .c-warn{background:#fdf6ec;border-color:#ecd9b7}.c-warn b{color:var(--warn)}
+  .c-bad{background:#fbeeee;border-color:#eac3c3}.c-bad b{color:var(--bad)}
+  .c-info{background:#eef4fb;border-color:#c9d9ef}.c-info b{color:#25548f}
+  .next{display:flex;gap:0;flex-wrap:wrap;counter-reset:step}
+  .step{flex:1 1 240px;background:var(--card);border:1px solid var(--line);padding:16px 18px;position:relative;font-size:13.5px}
+  .step:first-child{border-radius:12px 0 0 12px}
+  .step:last-child{border-radius:0 12px 12px 0}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;top:-13px;left:16px;width:26px;height:26px;
+    border-radius:50%;background:var(--ink);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center}
+  .step h3{margin:6px 0 4px;font-size:14px}
+  .step p{margin:0;color:var(--muted)}
+  .step.gap{outline:2px dashed #b9c2d6;outline-offset:-6px}
+  footer{margin-top:40px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+  .bars{display:flex;align-items:flex-end;gap:10px;height:56px}
+  .bar{width:34px;background:#e4e8f3;border:1px solid var(--line);border-bottom:none;border-radius:5px 5px 0 0;position:relative}
+  .bar span{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:10.5px;white-space:nowrap;color:var(--muted)}
+  .bar em{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-style:normal;font-weight:700;font-size:11px;color:var(--ink)}
+  :focus-visible{outline:3px solid #25548f;outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Step 1 of the routing mission · Freebuff</div>
+  <h1>What I built: a 16-query clinical routing axis</h1>
+  <p class="lede">Your repo studies what happens when a multi-agent system sends a task to the <em>wrong</em> agent.
+  Step 1 adds a second, clinical task set alongside the existing generic one — without touching it: four sub-agent
+  <b>destinations</b> declared in code, sixteen text queries (four per destination) built from sample clinical
+  scenarios, and a validator that proves the wiring. No routing pipeline yet — that is deliberately a later step.</p>
+  <ul class="chips">
+    <li><b>tasks/clinical_tasks.json</b> · 16 queries, 4 × 4</li>
+    <li><b>evaluate/clinical_agents.py</b> · destinations + <span class="mono">--validate</span></li>
+    <li><b>4 agent prompts</b> · handoff targets</li>
+    <li>Baseline <span class="mono">tasks.json</span> untouched</li>
+  </ul>
+</header>
+
+<h2>The four destinations</h2>
+<p class="sub">Declared once in <span class="mono">CLINICAL_DESTINATIONS</span> — each binds a name, a description,
+and the handoff target (the agent prompt file that would receive the task).</p>
+<div class="grid4" id="agents">
+  <section class="agent" style="--accent:var(--triage)" data-type="symptom_triage">
+    <h3><span class="dot"></span>symptom_triage</h3>
+    <p>Patient symptom descriptions → urgency classification (emergency / urgent / routine) + recommended action.</p>
+    <span class="hand">→ agents/symptom_triage_agent.txt</span>
+    <p class="q">“Sudden crushing chest pain radiating to the left arm…”</p>
+  </section>
+  <section class="agent" style="--accent:var(--inter)" data-type="drug_interaction_checker">
+    <h3><span class="dot"></span>drug_interaction_checker</h3>
+    <p>Medication lists and drug pairs → adverse interactions, contraindications, monitoring.</p>
+    <span class="hand">→ agents/drug_interaction_checker_agent.txt</span>
+    <p class="q">“Taking Warfarin, prescribed Amoxicillin. Check for interactions.”</p>
+  </section>
+  <section class="agent" style="--accent:var(--lit)" data-type="medical_literature_search">
+    <h3><span class="dot"></span>medical_literature_search</h3>
+    <p>Clinical evidence questions → what studies and guidelines say. Never personal advice.</p>
+    <span class="hand">→ agents/medical_literature_search_agent.txt</span>
+    <p class="q">“Aspirin for primary prevention in adults over 60?”</p>
+  </section>
+  <section class="agent" style="--accent:var(--math)" data-type="general_code_math">
+    <h3><span class="dot"></span>general_code_math</h3>
+    <p>Calculations and small functions on clinical data: scoring formulas, unit conversions.</p>
+    <span class="hand">→ agents/general_code_math_agent.txt</span>
+    <p class="q">“Compute creatinine clearance (Cockcroft-Gault).”</p>
+  </section>
+</div>
+
+<h2>How the pieces connect</h2>
+<p class="sub">Solid arrows are wired and verified today; dashed arrows are declared but not yet built.</p>
+<div class="card diagram">
+<svg viewBox="0 0 940 470" role="img" aria-labelledby="diag-desc">
+  <title id="diag-desc">Data flow: clinical task file feeds the destinations module, which hands off to four agent prompt files; the evaluator can already load the tasks but scoring dispatch and routing come later.</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b93a7"/>
+    </marker>
+    <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0d7a63"/>
+    </marker>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c23a3a"/>
+    </marker>
+  </defs>
+  <style>
+    .node{fill:#fff;stroke:#c9d0dd;rx:10}
+    .ttl{font:600 12.5px -apple-system,'Segoe UI',sans-serif;fill:#1b2333}
+    .sub2{font:11.5px ui-monospace,Menlo,monospace;fill:#5a6374}
+    .lbl{font:600 11px -apple-system,'Segoe UI',sans-serif;fill:#5a6374}
+    .edge{stroke:#8b93a7;stroke-width:1.6;fill:none;marker-end:url(#arr)}
+    .edgeG{stroke:#0d7a63;stroke-width:1.6;fill:none;stroke-dasharray:5 4;marker-end:url(#arrG)}
+    .edgeR{stroke:#c23a3a;stroke-width:1.6;fill:none;stroke-dasharray:5 4;marker-end:url(#arrR)}
+    .chip{rx:6}
+  </style>
+
+  <!-- task source -->
+  <rect class="node" x="18" y="66" width="212" height="96" rx="10"/>
+  <text class="ttl" x="32" y="90">tasks/clinical_tasks.json</text>
+  <text class="sub2" x="32" y="110">16 text queries · 4 per type</text>
+  <text class="sub2" x="32" y="126">type ∈ 4 destinations</text>
+  <text class="sub2" x="32" y="142">id / prompt / correct_answer</text>
+
+  <!-- destinations module -->
+  <rect class="node" x="300" y="40" width="252" height="150" rx="10"/>
+  <text class="ttl" x="316" y="64">evaluate/clinical_agents.py</text>
+  <text class="sub2" x="316" y="82">CLINICAL_DESTINATIONS (dict)</text>
+  <rect class="chip" x="316" y="92"  width="220" height="20" fill="#f7e4e4" stroke="#e0bcbc" rx="6"/><text x="326" y="106" font-size="11" fill="#7a2d2d" font-weight="600">symptom_triage</text>
+  <rect class="chip" x="316" y="116" width="220" height="20" fill="#ece4f8" stroke="#d4c4ee" rx="6"/><text x="326" y="130" font-size="11" fill="#4b2c86" font-weight="600">drug_interaction_checker</text>
+  <rect class="chip" x="316" y="140" width="220" height="20" fill="#e2f1ed" stroke="#bfdcd4" rx="6"/><text x="326" y="154" font-size="11" fill="#0b5c4b" font-weight="600">medical_literature_search</text>
+  <rect class="chip" x="316" y="164" width="220" height="20" fill="#f8ecdd" stroke="#e5d0b3" rx="6"/><text x="326" y="178" font-size="11" fill="#7c4a06" font-weight="600">general_code_math</text>
+
+  <!-- agent prompt files -->
+  <rect class="node" x="638" y="34"  width="292" height="38" rx="8"/><text class="sub2" x="650" y="57" font-size="10">agents/symptom_triage_agent.txt</text>
+  <rect class="node" x="638" y="82"  width="292" height="38" rx="8"/><text class="sub2" x="650" y="105" font-size="10">agents/drug_interaction_checker_agent.txt</text>
+  <rect class="node" x="638" y="130" width="292" height="38" rx="8"/><text class="sub2" x="650" y="153" font-size="10">agents/medical_literature_search_agent.txt</text>
+  <rect class="node" x="638" y="178" width="292" height="38" rx="8"/><text class="sub2" x="650" y="201" font-size="10">agents/general_code_math_agent.txt</text>
+
+  <!-- later-step ghost -->
+  <rect x="300" y="238" width="252" height="70" rx="10" fill="#f1f3f9" stroke="#b9c2d6" stroke-dasharray="6 5"/>
+  <text class="ttl" x="316" y="262">Routing pipeline</text>
+  <text class="sub2" x="316" y="280">dispatch + scoring dispatch</text>
+  <text class="sub2" x="316" y="296">— a later step (not built here)</text>
+
+  <!-- evaluator -->
+  <rect class="node" x="18" y="238" width="212" height="96" rx="10"/>
+  <text class="ttl" x="32" y="262">evaluate/evaluate.py</text>
+  <text class="sub2" x="32" y="282">load_tasks() ✓ reads file</text>
+  <text class="sub2" x="32" y="298">score_task() ✗ unsupported</text>
+  <text class="sub2" x="32" y="314">type → loud ValueError</text>
+
+  <!-- baseline -->
+  <rect class="node" x="18" y="382" width="212" height="66" rx="10"/>
+  <text class="ttl" x="32" y="404">Baseline (untouched)</text>
+  <text class="sub2" x="32" y="422">tasks/tasks.json · 10 tasks</text>
+  <text class="sub2" x="32" y="438">coding / math / extraction / evidence_qa</text>
+
+  <!-- edges -->
+  <path class="edge" d="M230,114 L300,114"/>
+  <text class="lbl" x="236" y="106">load + validate</text>
+  <path class="edge" d="M552,90 C590,70 600,55 640,53"/>
+  <path class="edge" d="M552,100 C596,100 600,101 640,101"/>
+  <path class="edge" d="M552,140 C596,145 600,149 640,149"/>
+  <path class="edge" d="M552,168 C596,186 600,196 640,197"/>
+  <text class="lbl" x="586" y="240">handoff target (prompt file)</text>
+  <path class="edge" d="M426,190 L426,238" stroke-dasharray="6 5"/>
+  <path class="edgeG" d="M124,162 L124,238"/>
+  <text class="lbl" x="132" y="206" fill="#0d7a63">load ✓ today</text>
+  <path class="edgeR" d="M230,296 L300,296"/>
+  <text class="lbl" x="234" y="316" fill="#c23a3a">score ✗ later</text>
+</svg>
+<p class="sub" style="margin-top:10px">The four destination chips each own exactly 4 of the 16 queries. The evaluator already
+loads the clinical file cleanly; scoring and routing hooks fail <em>loudly</em> by design until their step arrives.</p>
+</div>
+
+<h2>The 16 queries</h2>
+<p class="sub">Click a destination to highlight only its four queries. Answers follow the evaluator’s existing scoring
+conventions (numbers for math, normalized code for coding) so the set is runnable once scoring is wired.</p>
+<div class="card">
+  <div class="filters" role="group" aria-label="Filter tasks by destination">
+    <button data-filter="all" aria-pressed="true">All 16</button>
+    <button data-filter="symptom_triage" aria-pressed="false" style="--accent:var(--triage)">symptom_triage</button>
+    <button data-filter="drug_interaction_checker" aria-pressed="false" style="--accent:var(--inter)">drug_interaction_checker</button>
+    <button data-filter="medical_literature_search" aria-pressed="false" style="--accent:var(--lit)">medical_literature_search</button>
+    <button data-filter="general_code_math" aria-pressed="false" style="--accent:var(--math)">general_code_math</button>
+  </div>
+  <table id="tasktable">
+    <thead><tr><th style="width:24%">Task</th><th>Prompt (abridged)</th><th style="width:36%">correct_answer (abridged)</th></tr></thead>
+    <tbody>
+      <tr class="group" data-type="symptom_triage"><td colspan="3"><span class="badge" style="--accent:var(--triage)">symptom_triage</span></td></tr>
+      <tr data-type="symptom_triage"><td class="mono">symptom_triage_1</td><td>58-y-o man, crushing chest pain → left arm, 20 min ago; classify urgency</td><td>emergency: call emergency services; possible MI</td></tr>
+      <tr data-type="symptom_triage"><td class="mono">symptom_triage_2</td><td>6-y-o, runny nose + sore throat 2 days, playing, no fever</td><td>routine: home care; pediatrician if worse</td></tr>
+      <tr data-type="symptom_triage"><td class="mono">symptom_triage_3</td><td>24-y-o woman, sudden one-sided weakness + slurred speech, 30 min</td><td>emergency: stroke pathway, urgent imaging</td></tr>
+      <tr data-type="symptom_triage"><td class="mono">symptom_triage_4</td><td>35-y-o, mild low-back pain after moving boxes, no red flags</td><td>routine: conservative care + return precautions</td></tr>
+      <tr class="group" data-type="drug_interaction_checker"><td colspan="3"><span class="badge" style="--accent:var(--inter)">drug_interaction_checker</span></td></tr>
+      <tr data-type="drug_interaction_checker"><td class="mono">drug_interaction_checker_1</td><td>Warfarin + newly prescribed Amoxicillin</td><td>significant: ↑INR / bleeding risk; monitor INR</td></tr>
+      <tr data-type="drug_interaction_checker"><td class="mono">drug_interaction_checker_2</td><td>Lisinopril + OTC potassium chloride</td><td>significant: hyperkalemia; monitor K⁺</td></tr>
+      <tr data-type="drug_interaction_checker"><td class="mono">drug_interaction_checker_3</td><td>Sublingual nitroglycerin + sildenafil</td><td>contraindicated: severe hypotension</td></tr>
+      <tr data-type="drug_interaction_checker"><td class="mono">drug_interaction_checker_4</td><td>Metformin + contrast-enhanced CT scheduled</td><td>risk: lactic acidosis; hold per protocol</td></tr>
+      <tr class="group" data-type="medical_literature_search"><td colspan="3"><span class="badge" style="--accent:var(--lit)">medical_literature_search</span></td></tr>
+      <tr data-type="medical_literature_search"><td class="mono">medical_literature_search_1</td><td>Aspirin for primary CVD prevention, adults &gt; 60?</td><td>guidance: against initiating in &gt; 60</td></tr>
+      <tr data-type="medical_literature_search"><td class="mono">medical_literature_search_2</td><td>RCTs: CPAP vs mandibular advancement devices (OSA)</td><td>CPAP lowers AHI more; adherence similar</td></tr>
+      <tr data-type="medical_literature_search"><td class="mono">medical_literature_search_3</td><td>Mediterranean diet and cardiovascular events</td><td>PREDIMED: fewer major CV events</td></tr>
+      <tr data-type="medical_literature_search"><td class="mono">medical_literature_search_4</td><td>Rapid antigen vs RT-PCR accuracy for influenza</td><td>sens ~50–70%, spec ~99%</td></tr>
+      <tr class="group" data-type="general_code_math"><td colspan="3"><span class="badge" style="--accent:var(--math)">general_code_math</span></td></tr>
+      <tr data-type="general_code_math"><td class="mono">general_code_math_1</td><td>Cockcroft-Gault: Cr 1.2, age 55, 70 kg, male</td><td class="mono">68.9</td></tr>
+      <tr data-type="general_code_math"><td class="mono">general_code_math_2</td><td>Convert 154 lb to kg</td><td class="mono">69.9</td></tr>
+      <tr data-type="general_code_math"><td class="mono">general_code_math_3</td><td>Function: labs outside 3.5–5.0</td><td class="mono">def abnormal_labs(…)</td></tr>
+      <tr data-type="general_code_math"><td class="mono">general_code_math_4</td><td>Function: age in whole years from DOB</td><td class="mono">def age_years(…)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>Verified, not assumed</h2>
+<p class="sub">Everything below was actually executed in this workspace, not claimed.</p>
+<div class="verif">
+  <div class="card">
+    <h3>✅ Positive checks</h3>
+    <ul>
+      <li><span class="pass">PASS</span> — <span class="mono">clinical_agents.py --validate</span>: 16 tasks, 4 per destination, all handoff files exist</li>
+      <li><span class="pass">PASS</span> — <span class="mono">evaluate.load_tasks()</span> reads the clinical file cleanly</li>
+      <li><span class="pass">PASS</span> — baseline scorer regression: math / coding / extraction still score 1</li>
+      <li><span class="pass">PASS</span> — answer-label recomputation (CG = 68.9, lb→kg = 69.9)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>🧪 Negative tests (validator must reject)</h3>
+    <ul>
+      <li>Unknown type <span class="mono">"podiatry"</span> → <span class="pass">rejected</span></li>
+      <li>Imbalance (3 triage tasks) → <span class="pass">rejected</span></li>
+      <li>Duplicate id → <span class="pass">rejected</span></li>
+      <li>Empty <span class="mono">correct_answer</span> → <span class="pass">rejected</span></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>🔍 Boundary probe</h3>
+    <ul>
+      <li>All 16 clinical ids hit <span class="mono">score_task</span> → <span class="pass">loud ValueError</span> (no silent mis-scoring)</li>
+      <li>Caught during review: <em>all 16</em>, not just 12 prose tasks — <span class="mono">general_code_math</span> is not aliased to <span class="mono">math</span>/<span class="mono">coding</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>Known limitations (stated plainly)</h2>
+<div class="calls">
+  <div class="callout c-warn"><b>Scoring not wired yet</b>Step 1 scope ends at destinations + data. Running the clinical set today fails fast with
+  <span class="mono">Unsupported task type</span> rather than silently scoring wrong — the fix belongs to the scoring-dispatch step.</div>
+  <div class="callout c-bad"><b>Pre-existing defect found, not fixed (out of scope)</b>The baseline prompt files are rotated: <span class="mono">math_agent.txt</span> holds the extraction prompt,
+  <span class="mono">extraction_agent.txt</span> the evidence-QA prompt, <span class="mono">evidence_qa_agent.txt</span> the math prompt. Any baseline run scores against the wrong system prompts.</div>
+  <div class="callout c-info"><b>Environment note</b>This machine resolves <span class="mono">python3</span>, not <span class="mono">python</span>; README commands using plain
+  <span class="mono">python</span> will fail as written.</div>
+</div>
+
+<h2>Where this goes next</h2>
+<div class="next">
+  <div class="step gap"><h3>Scoring dispatch</h3><p>Teach <span class="mono">score_task</span> the three clinical types + alias <span class="mono">general_code_math</span>; unit-test each scorer.</p></div>
+  <div class="step gap"><h3>Routing pipeline</h3><p>Dispatch each task to its destination, log routing accuracy alongside task success in <span class="mono">results.jsonl</span>.</p></div>
+  <div class="step"><h3>Conditions 1–5</h3><p>Oracle / random / wrong / local-router / escalation — the actual misrouting experiment the clinical set feeds.</p></div>
+</div>
+
+<footer>
+  <div class="bars" aria-label="Tasks per destination, 4 each">
+    <div class="bar" style="height:34px"><em>4</em><span>triage</span></div>
+    <div class="bar" style="height:34px"><em>4</em><span>interact</span></div>
+    <div class="bar" style="height:34px"><em>4</em><span>lit</span></div>
+    <div class="bar" style="height:34px"><em>4</em><span>code/math</span></div>
+  </div>
+  <div>Perfect 4 × 4 balance · 0 tasks parsed from raw data — all 16 constructed from sample clinical scenarios.<br>
+  Files: <span class="mono">tasks/clinical_tasks.json</span> · <span class="mono">evaluate/clinical_agents.py</span> · 4 × <span class="mono">agents/*_agent.txt</span> · README section</div>
+</footer>
+
+</div>
+<script>
+  (function(){
+    var buttons = document.querySelectorAll('.filters button');
+    var rows = document.querySelectorAll('#tasktable tbody tr');
+    buttons.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        buttons.forEach(function(b){ b.setAttribute('aria-pressed', String(b === btn)); });
+        var f = btn.dataset.filter;
+        rows.forEach(function(r){
+          var show = (f === 'all') || (r.dataset.type === f);
+          r.classList.toggle('hide', !show);
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>
